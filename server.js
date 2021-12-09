@@ -8,38 +8,35 @@ const io = require("socket.io")(server, {
 });
 const config = require('./config');
 const cors = require('cors');
+const sequelize = require('./models/index');
+require('dotenv').config()
 
 app.use(cors());
 app.use(express.json());
 
-const rooms = new Map();
+const userRouter = require('./routers/userRouter');
+const roomRouter = require('./routers/roomRouter');
+const roomUserRouter = require('./routers/roomUserRouter');
 
-app.get('/rooms/:id', (req, res) => {
+app.use('/user', userRouter);
+app.use('/room', roomRouter);
+app.use('/room-user', roomUserRouter);
+
+let rooms = [];
+
+app.get('/rooms/:id', async (req, res) => {
     const {id: roomId} = req.params;
     const obj = rooms.has(roomId)
         ? {
             users: [...rooms.get(roomId).get('users').values()],
             messages: [...rooms.get(roomId).get('messages').values()],
         }
-        : { users: [], messages: [] };
+        : await sequelize.Room.findAll({
+            where: {
+                userId: 1
+            }
+        });
     res.json(obj);
-});
-
-app.post('/', (req, res) => {
-   console.log('post-test');
-
-    const { roomId, userName } = req.body;
-    if (!rooms.has(roomId)) {
-        rooms.set(
-            roomId,
-            new Map([
-                ['users', new Map()],
-                ['messages', []],
-            ]),
-        );
-    }
-    console.log(rooms);
-    res.send();
 });
 
 io.on('connection', socket => {
