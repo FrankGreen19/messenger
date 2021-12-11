@@ -1,5 +1,6 @@
 const Router = require('express').Router;
 const sequalize = require('../models/index');
+const messagesController = require('../controllers/messageController');
 
 const roomUserRouter = Router();
 
@@ -30,7 +31,14 @@ roomUserRouter.route('/rooms/:userId')
             });
 
             let userRooms = await user.getRooms();
-            res.send(userRooms);
+            let newUserRooms = [];
+
+            for (let i = 0; i < userRooms.length; i++) {
+                let messages = await messagesController.getMessagesByRoomId(userRooms[i].id);
+                newUserRooms.push({...userRooms[i].dataValues, messages: messages});
+            }
+
+            res.send(newUserRooms);
         } catch (error) {
             console.error(error);
             res.status(500).send();
